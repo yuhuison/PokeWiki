@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>应用栏 - 含工具栏和 Tab 选项卡</title>
+  <link rel="stylesheet" href="css/mdui.min.css"/>
+  <script>
+      var icon_tubr=' <i class="mdui-list-item-icon mdui-icon material-icons">search</i>&nbsp;';
+      var icon_mess=' <i class="mdui-list-item-icon mdui-icon material-icons">message</i>&nbsp;&nbsp;&nbsp;';
+      var can_s=0;
+      var last=0;
+      var chu=0;
+      var show=0;
+      var jsonparray = new Array();
+      var v="";
+      function JSONP(url){
+        var script = document.createElement("script");
+        script.src = url+'&callback=jsonparray['+last+'].handleResponse';
+        var p = new Object();
+        p.pid=last+1;
+        p.handleResponse=handleResponse;
+        jsonparray.push(p);
+        document.body.insertBefore(script, document.body.firstChild);
+        
+      }
+      function handleResponse(data){
+        console.log(this);
+        if(data=='{"batchcomplete":""}' && (this.pid==last)){
+                    $$('#searchlist')[0].innerHTML= '<li id="baseli" class="mdui-list-item">'+icon_tubr+v+'没有词条搜索结果 ->所有页面中直接搜索&nbsp;'+this.res+'</li>';
+                }
+                if(data!='{"batchcomplete":""}' && (this.pid==last)){
+                    var d= data;
+                    console.log(d);
+                    if(d.query!=undefined){
+                        if(d.query.pages!=undefined){
+                            $$('#searchlist')[0].innerHTML='<li id="baseli" class="mdui-list-item">'+icon_tubr+'在页面中直接搜索&nbsp;'+v+'</li>';
+                            console.log(d.query);
+                            var o = Object.getOwnPropertyNames(d.query.pages);
+
+                            console.log(o.length);
+                            var p =d.query.pages;
+                            var patt=new RegExp(v,"i");
+                            if(d.query.redirects!=undefined){
+                              var o2= Object.getOwnPropertyNames(d.query.redirects);
+                              var p2=d.query.redirects;
+                            for(let i1=0;i1<o2.length;i1++){
+                              for(let i2=0;i2<o.length;i2++){
+                                if(p[o[i2]].title==p2[o2[i1]].to){
+                                  p[o[i2]].from=p2[o2[i1]].from;
+                                }
+                              }
+                            }
+                            }
+                            for(let i=0;i<o.length;i++){
+                              p[o[i]].realtitle=p[o[i]].title;
+                              if(p[o[i]].from!=undefined){
+                                
+                                p[o[i]].title=p[o[i]].title+'&nbsp;('+p[o[i]].from+')';
+                              } 
+                              var t='<li onclick="itemonclick(this)" id="'+p[o[i]].realtitle+'" class="mdui-list-item">'+icon_mess+p[o[i]].title.replace(patt,'<b>'+patt.exec(p[o[i]].title)+'</b>')+'</li>';
+
+                              $$('#searchlist')[0].innerHTML=$$('#searchlist')[0].innerHTML+t;
+                            }
+                        }
+                    }
+                }
+      }
+      function itemonclick(t){
+        window.location.href="bro.html?title="+t.id+"&url=https://wiki.52poke.com/wiki/"+t.id;
+      }
+      function can_search(){
+          if(can_s==2){
+              can_s=0;
+              searchBoxinput();
+          }else{
+              can_s=0;
+          }
+      }
+      function searchBoxinput(){
+        v=$$('#searchbox')[0].value;
+        if(chu==0){
+            chu=1;
+        }
+        $$('#searchlist')[0].innerHTML='<li id="baseli" class="mdui-list-item">'+icon_tubr+'在页面中直接搜索&nbsp;'+v+'</li>';
+          if(can_s==0){
+          can_s=1;
+          JSONP("https://wiki.52poke.com/api.php?action=query&format=json&prop=pageprops&generator=prefixsearch&ppprop=displaytitle&redirects=&gpssearch="+v+"&gpsnamespace=0&gpslimit=15");
+          setTimeout('can_search();',1000);
+          last++;;
+          }else{
+              can_s=2;
+          }
+      }
+      function replaceKeyWord(keyword,rhtml){
+        rhtml.replace(keyword,"<b>"+keyword+"</b>");
+      }
+      function searchboxFoucs(){
+        //$$('#tabs')[0].style.display='none';
+        if(show==0){
+          box_show();
+          mdui.mutation();
+        }
+      }
+      function box_show(){
+        show=1;
+        $$('#searchlist')[0].style.display='block';
+        $$('#ctab')[0].style.display='none';
+        $$('#main')[0].style.height=h+"px";
+        $$('#listbox')[0].style.top=-mh+"px";
+        $$('#leftbtn')[0].innerHTML='arrow_back';
+        $$('#tabs')[0].style.top='-2000px';
+      }
+      function box_hidden(){
+        //$$('.mdui-ripple mdui-red-white')[0].style.display='none';
+        //$$('.mdui-ripple mdui-red-white')[1].style.display='none';
+        //$$('.mdui-ripple mdui-red-white')[2].style.display='none';
+        show=0;
+        $$('#searchlist')[0].style.display='none';
+        $$('#ctab')[0].style.display='inline';
+        $$('#main')[0].style.height=h+mh+"px";
+        $$('#leftbtn')[0].innerHTML='menu';
+        $$('#tabs')[0].style.top='0px';
+      }
+      function btn_click(){
+        if(show==1){
+          box_hidden();
+        }
+      }
+  </script>
+</head>
+<body class="mdui-appbar-with-toolbar mdui-appbar-with-tab">
+
+<div class="mdui-appbar mdui-appbar-fixed" style="z-index: 3;" id="main">
+  <div class="mdui-toolbar mdui-color-red">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon"><i id='leftbtn' onclick="btn_click()" class="mdui-icon material-icons">menu</i></a>
+    <input id="searchbox" onfocus="searchboxFoucs()" oninput="searchBoxinput()" class="mdui-textfield-input" type="text" placeholder="输入词条搜索百科 (语言不限)"/>
+
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">search</i></a>
+  </div>
+
+  <div id="tabs" style="position: relative;" class="mdui-tab mdui-color-red" mdui-tab>
+    <a  href="#tab1" class="mdui-ripple mdui-red-white">新闻</a>
+    <a  href="#tab2" class="mdui-ripple mdui-red-white">主页</a>
+    <a  href="#tab3" class="mdui-ripple mdui-red-white">社区</a>
+  </div>
+</div>
+<div id="listbox" style="height:100%;position: relative;" >
+        <ul id="searchlist" class="mdui-list" style="display:none;z-index: 2;">
+          
+                <li id='baseli' class="mdui-list-item"> <i class="mdui-list-item-icon mdui-icon material-icons">search</i>在页面中直接搜索 神奇宝贝百科</li>
+       </ul>
+     </div>
+<div id="ctab" class="mdui-container-fluid" style="position: fixed;">
+  <div id="tab1">
+    <p>tab 1</p>
+
+
+  </div>
+  <div id="tab2">
+    <p></p>
+      <div class="mdui-card ">
+          <div class="mdui-card-media">
+            <img src="image/bg/pmwiki.jpg"/>
+            <div class="mdui-card-media-covered mdui-card-media-covered-transparent">
+              <div class="mdui-card-primary">
+                <div class="mdui-card-primary-title">宝可梦图鉴</div>
+                <div class="mdui-card-primary-subtitle">宝可梦|招式|特性</div>
+              </div>
+              <div class="mdui-card-actions">
+                <button class="mdui-btn mdui-ripple mdui-ripple-white">进入图鉴</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+  </div>
+  <div id="tab3">
+    <p>tab 3</p>
+
+  </div>
+</div>
+
+<script src="js/mdui.min.js"></script>
+<script>
+    var $$=mdui.JQ;
+    
+    $$.ajaxSetup({method:'GET'});
+    var h = $$('#main')[0].clientHeight-$$('#tabs')[0].clientHeight;
+    var mh=$$('#tabs')[0].clientHeight;
+    console.log(h);
+    var w=$$('#searchbox')[0].clientWidth;
+    mdui.mutation();
+</script>
+</body>
+</html>
